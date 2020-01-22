@@ -29,14 +29,12 @@
 void InitStartTime( void );
 XTime GetLocalTime( void );
 XTime GetTempTime(void);
-//int GetNeutronTotal( void );
-//int PutNeutronTotal(int total);
 void ResetNeutronCounts( void );
 int IncNeutronTotal(int pmt_id, int increment);
 int GetDigiTemp( void );
 int GetAnlgTemp( void );
 int GetModuTemp( void );
-int InitTempSensors( XIicPs *Iic);
+int InitTempSensors( XIicPs *Iic );
 void SetModeByte( unsigned char mode );
 void SetIDNumber( int id_number );
 void SetRunNumber( int run_number );

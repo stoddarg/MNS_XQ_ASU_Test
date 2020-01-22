@@ -73,6 +73,8 @@ void ResetNeutronCounts( void )
 	iNeutronTotal_pmt1 = 0;
 	iNeutronTotal_pmt2 = 0;
 	iNeutronTotal_pmt3 = 0;
+
+	return;
 }
 
 /*
@@ -130,7 +132,7 @@ int GetModuTemp( void )
 }
 
 //Initialization function to "start up" all three temperature sensors on the board during startup
-int InitTempSensors( XIicPs *Iic)
+int InitTempSensors( XIicPs *Iic )
 {
 	unsigned char i2c_Send_Buffer[2] = {};
 	unsigned char i2c_Recv_Buffer[2] = {};
@@ -202,6 +204,7 @@ int InitTempSensors( XIicPs *Iic)
 
 	return status;
 }
+
 /*
  * Setter function for the mode byte
  *
@@ -285,9 +288,6 @@ int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 	int status = 0;
 	int bytes_sent = 0;
 	unsigned int local_time_holder = 0;
-
-	i2c_Send_Buffer[0] = 0x0;
-	i2c_Send_Buffer[1] = 0x0;
 
 	switch(check_temp_sensor){
 	case 0:	//analog board

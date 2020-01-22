@@ -48,6 +48,8 @@
  * 15 ms "protection" period should be applied to all UART send commands so the XB-1 doesn't
  *  get swamped when we are sending packets to it.
  *
+ * 1-22-2020
+ * The boot files created at 12:30pm are Version 7.1
  */
 
 #include "main.h"
@@ -106,14 +108,12 @@ int main()
 	Xil_Out32 (XPAR_AXI_GPIO_1_BASEADDR, 73);	//short
 	Xil_Out32 (XPAR_AXI_GPIO_2_BASEADDR, 169);	//long
 	Xil_Out32 (XPAR_AXI_GPIO_3_BASEADDR, 1551);	//full
-//	Xil_Out32 (XPAR_AXI_GPIO_4_BASEADDR, 0);	//TEC stuff, 0 turns things off	//deprecated, we don't have a TEC anymore
-//	Xil_Out32 (XPAR_AXI_GPIO_5_BASEADDR, 0);	//TEC stuff
 	Xil_Out32 (XPAR_AXI_GPIO_6_BASEADDR, 0);	//disable the system, allows data
 	Xil_Out32 (XPAR_AXI_GPIO_7_BASEADDR, 0);	//disable 5V to sensor head
 	Xil_Out32 (XPAR_AXI_GPIO_10_BASEADDR, 8500);	//threshold, max of 2^14 (16384)
 	Xil_Out32 (XPAR_AXI_GPIO_16_BASEADDR, 16384);	//master-slave frame size
 	Xil_Out32 (XPAR_AXI_GPIO_17_BASEADDR, 1);	//master-slave enable
-	Xil_Out32(XPAR_AXI_GPIO_18_BASEADDR, 0);	//capture module disable
+	Xil_Out32 (XPAR_AXI_GPIO_18_BASEADDR, 0);	//capture module disable
 
 	//*******************Setup the UART **********************//
 	status = 0;
@@ -188,7 +188,6 @@ int main()
 	InitConfig();
 
 	// *********** Initialize Local Variables ****************//
-	//Write up function to check the time during start-up
 	InitTempSensors(&Iic);
 	InitStartTime();			//start timing
 	SetModeByte(MODE_STANDBY);	//set the mode byte to standby
@@ -268,7 +267,6 @@ int main()
 			}
 			//prepare the status variables
 			done = 0;	//not done yet
-//			PutNeutronTotal(0);	//set the SOH neutron count reports back to 0 for the run
 			ResetNeutronCounts();	//set the SOH counts to 0
 			CPSInit();	//reset neutron counts for the run
 			status = CMD_SUCCESS;	//reset the variable so that we jump into the loop

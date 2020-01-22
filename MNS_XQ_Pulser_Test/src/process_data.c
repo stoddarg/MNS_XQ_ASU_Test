@@ -12,7 +12,7 @@ static int evt_iter;										//event buffer iterator
 static const GENERAL_EVENT_TYPE evtEmptyStruct;				//use this to reset the holder struct each iteration
 static GENERAL_EVENT_TYPE event_buffer[EVENT_BUFFER_SIZE];	//buffer to store events //2048 * 8 bytes = 16384 bytes
 static unsigned int m_neutron_counts;						//total neutron counts
-static unsigned int m_event_number;							//event number holder
+//static unsigned int m_event_number;							//event number holder
 static unsigned int m_first_event_time_FPGA;				//the first event time which needs to be written into every data product header
 /*
  * Helper function to allow external functions to grab the EVTs buffer and write it to SD
@@ -64,7 +64,7 @@ int ProcessData( unsigned int * data_raw )
 	unsigned int m_y_bin_number = 0;
 	unsigned int m_tagging_bit = 0;
 	unsigned int num_bytes_written = 0;
-	unsigned int m_total_events_holder = 0;
+//	unsigned int m_total_events_holder = 0;
 	unsigned int m_event_number_holder = 0;
 	unsigned int m_pmt_ID_holder = 0;
 	unsigned int m_FPGA_time_holder = 0;

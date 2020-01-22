@@ -475,7 +475,7 @@ int SetHighVoltage(XIicPs * Iic, unsigned char PmtId, int Value)
 				i2c_Send_Buffer[0] = cntrl | PmtId;
 				i2c_Send_Buffer[1] = Value;
 				//send the command to the HV
-				RetVal = IicPsMasterSend(Iic, IIC_DEVICE_ID_0, i2c_Send_Buffer, i2c_Recv_Buffer, &IIC_SLAVE_ADDR1);
+				RetVal = IicPsMasterSend(Iic, IIC_DEVICE_ID_0, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR1);
 				if(RetVal == XST_SUCCESS)
 				{
 					// write to config file
@@ -503,7 +503,7 @@ int SetHighVoltage(XIicPs * Iic, unsigned char PmtId, int Value)
 					i2c_Send_Buffer[0] = cntrl | PmtId;
 					i2c_Send_Buffer[1] = Value;
 					//send the command to the HV
-					RetVal = IicPsMasterSend(Iic, IIC_DEVICE_ID_0 ,i2c_Send_Buffer, i2c_Recv_Buffer, &IIC_SLAVE_ADDR1);
+					RetVal = IicPsMasterSend(Iic, IIC_DEVICE_ID_0 ,i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR1);
 					if(RetVal == XST_SUCCESS)
 					{
 						// write to config file
