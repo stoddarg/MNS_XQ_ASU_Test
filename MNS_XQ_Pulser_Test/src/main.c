@@ -189,6 +189,7 @@ int main()
 
 	// *********** Initialize Local Variables ****************//
 	//Write up function to check the time during start-up
+	InitTempSensors(&Iic);
 	InitStartTime();			//start timing
 	SetModeByte(MODE_STANDBY);	//set the mode byte to standby
 
@@ -267,7 +268,8 @@ int main()
 			}
 			//prepare the status variables
 			done = 0;	//not done yet
-			PutNeutronTotal(0);	//set the SOH neutron count reports back to 0 for the run
+//			PutNeutronTotal(0);	//set the SOH neutron count reports back to 0 for the run
+			ResetNeutronCounts();	//set the SOH counts to 0
 			CPSInit();	//reset neutron counts for the run
 			status = CMD_SUCCESS;	//reset the variable so that we jump into the loop
 			SetModeByte(MODE_PRE_DAQ);

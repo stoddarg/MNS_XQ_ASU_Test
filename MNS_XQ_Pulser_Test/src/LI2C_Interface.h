@@ -20,7 +20,7 @@
 /* Function Declarations */
 void I2C_InitStartTime(void);
 int IicPsInit(XIicPs * Iic, u16 DeviceId);
-int IicPsMasterSend(XIicPs * Iic, u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_Recv_Buffer, int * iI2C_slave_addr);
-int IicPsMasterRecieve(XIicPs * Iic, u8 * ptr_Recv_Buffer, int * iI2C_slave_addr);
+int IicPsMasterSend(XIicPs * Iic, u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_Recv_Buffer, int iI2C_slave_addr);
+int IicPsMasterRecieve(XIicPs * Iic, u8 * ptr_Recv_Buffer, int iI2C_slave_addr);
 
 #endif /* LI2C_INTERFACE_H_ */

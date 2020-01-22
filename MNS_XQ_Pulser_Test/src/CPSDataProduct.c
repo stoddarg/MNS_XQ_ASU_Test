@@ -244,7 +244,7 @@ CPS_EVENT_STRUCT_TYPE * cpsGetEvent( void )
 bool CPSIsWithinEllipse( double energy, double psd, int module_num, int ellipse_num )
 {
 	bool ret = FALSE;
-	double c1 = m_cfg_buff.SF_PSD[ellipse_num] * b_rad_1[module_num] / m_cfg_buff.SF_E[ellipse_num] * a_rad_1[module_num];
+	double c1 = (m_cfg_buff.SF_PSD[ellipse_num] * b_rad_1[module_num]) / (m_cfg_buff.SF_E[ellipse_num] * a_rad_1[module_num]);
 	double c2 = m_cfg_buff.SF_E[ellipse_num] * a_rad_1[module_num];
 	double xco = mean_nrg_1[module_num] + m_cfg_buff.Off_E[ellipse_num];
 	double xval = energy - xco;
@@ -346,6 +346,8 @@ int CPSUpdateTallies(double energy, double psd, int pmt_id)
 				MinPSD = MinPSD_C0[MNS_DETECTOR_NUM][iter] + MinPSD_C1[MNS_DETECTOR_NUM][iter]*m_current_module_temp + MinPSD_C2[MNS_DETECTOR_NUM][iter]*m_current_module_temp*m_current_module_temp;
 				MaxPSD = MaxPSD_C0[MNS_DETECTOR_NUM][iter] + MaxPSD_C1[MNS_DETECTOR_NUM][iter]*m_current_module_temp + MaxPSD_C2[MNS_DETECTOR_NUM][iter]*m_current_module_temp*m_current_module_temp;
 
+				MinPSD *= (double)TWODH_Y_BINS / (double)TWODH_PSD_MAX;
+				MaxPSD *= (double)TWODH_Y_BINS / (double)TWODH_PSD_MAX;
 				//the scaling should all happen with the configuration parameters
 	//			MinNRG *= 0.8;	//random extra scaling
 	//			MaxNRG *= 1.2;

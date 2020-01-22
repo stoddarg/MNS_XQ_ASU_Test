@@ -69,7 +69,7 @@ int IicPsInit(XIicPs * Iic, u16 DeviceId)
 * @note		None.
 *
 *******************************************************************************/
-int IicPsMasterSend(XIicPs * Iic, u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_Recv_Buffer, int * iI2C_slave_addr)
+int IicPsMasterSend(XIicPs * Iic, u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_Recv_Buffer, int iI2C_slave_addr)
 {
 	int iStatus = 0;
 	XIicPs_Config *Config;
@@ -99,7 +99,7 @@ int IicPsMasterSend(XIicPs * Iic, u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_R
 	 * Send the buffer using the IIC.
 	 */
 	//Still trying out using Send Polled, the previous versions used master Send (the interrupt driven version)
-	iStatus = XIicPs_MasterSendPolled(Iic, ptr_Send_Buffer, TEST_BUFFER_SIZE, *iI2C_slave_addr);
+	iStatus = XIicPs_MasterSendPolled(Iic, ptr_Send_Buffer, TEST_BUFFER_SIZE, iI2C_slave_addr);
 
 	/*
 	 * Wait until bus is idle to start another transfer.
@@ -128,10 +128,10 @@ int IicPsMasterSend(XIicPs * Iic, u16 DeviceId, u8 * ptr_Send_Buffer, u8 * ptr_R
 	return iStatus;
 }
 
-int IicPsMasterRecieve(XIicPs * Iic, u8 * ptr_Recv_Buffer, int * iI2C_slave_addr)
+int IicPsMasterRecieve(XIicPs * Iic, u8 * ptr_Recv_Buffer, int iI2C_slave_addr)
 {
 	int iStatus = 0;
-	iStatus = XIicPs_MasterRecvPolled(Iic, ptr_Recv_Buffer, 0x2, *iI2C_slave_addr);
+	iStatus = XIicPs_MasterRecvPolled(Iic, ptr_Recv_Buffer, 0x2, iI2C_slave_addr);
 	if (iStatus != XST_SUCCESS)
 		iStatus = XST_FAILURE;
 

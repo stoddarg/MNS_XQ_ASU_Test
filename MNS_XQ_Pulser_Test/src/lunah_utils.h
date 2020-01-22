@@ -16,21 +16,27 @@
 #include "lunah_defines.h"
 #include "LI2C_Interface.h"		//talk to I2C devices (temperature sensors)
 
-#define TAB_CHAR_CODE			9
-#define NEWLINE_CHAR_CODE		10
-#define SOH_PACKET_LENGTH		56	//added 15 bytes when we split the neutron counts into 4 fields
-#define TEMP_PACKET_LENGTH		19
+#define IIC_SLAVE_ADDR2		0x4B	//Temp sensor on digital board
+#define IIC_SLAVE_ADDR3		0x48	//Temp sensor on the analog board
+#define IIC_SLAVE_ADDR5		0x4A	//Extra Temp Sensor Board, mounted near the modules
+
+#define TAB_CHAR_CODE		9
+#define NEWLINE_CHAR_CODE	10
+#define SOH_PACKET_LENGTH	56
+#define TEMP_PACKET_LENGTH	19
 
 // prototypes
 void InitStartTime( void );
 XTime GetLocalTime( void );
 XTime GetTempTime(void);
-int GetNeutronTotal( void );
-int PutNeutronTotal(int total);
+//int GetNeutronTotal( void );
+//int PutNeutronTotal(int total);
+void ResetNeutronCounts( void );
 int IncNeutronTotal(int pmt_id, int increment);
 int GetDigiTemp( void );
 int GetAnlgTemp( void );
 int GetModuTemp( void );
+int InitTempSensors( XIicPs *Iic);
 void SetModeByte( unsigned char mode );
 void SetIDNumber( int id_number );
 void SetRunNumber( int run_number );

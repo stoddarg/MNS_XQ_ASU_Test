@@ -56,15 +56,23 @@ XTime GetTempTime(void)
 /*
  *  Stub file to return neutron total.
  */
-int GetNeutronTotal(void)
-{
-	return iNeutronTotal;
-}
+//int GetNeutronTotal(void)
+//{
+//	return iNeutronTotal;
+//}
+//
+//int PutNeutronTotal(int total)
+//{
+//	iNeutronTotal = total;
+//	return iNeutronTotal;
+//}
 
-int PutNeutronTotal(int total)
+void ResetNeutronCounts( void )
 {
-	iNeutronTotal = total;
-	return iNeutronTotal;
+	iNeutronTotal_pmt0 = 0;
+	iNeutronTotal_pmt1 = 0;
+	iNeutronTotal_pmt2 = 0;
+	iNeutronTotal_pmt3 = 0;
 }
 
 /*
@@ -95,7 +103,7 @@ int IncNeutronTotal(int pmt_id, int increment)
 	//TODO: handle a bad PMT ID, they will certainly get passed in,
 	// but we don't want to include them in the individual module totals.
 	//I do not think that we need anything special to include it. Just increment the total, but not the individual hits.
-	iNeutronTotal += increment;
+//	iNeutronTotal += increment;
 
 	return iNeutronTotal;
 }
@@ -121,6 +129,79 @@ int GetModuTemp( void )
 	return modu_board_temp;
 }
 
+//Initialization function to "start up" all three temperature sensors on the board during startup
+int InitTempSensors( XIicPs *Iic)
+{
+	unsigned char i2c_Send_Buffer[2] = {};
+	unsigned char i2c_Recv_Buffer[2] = {};
+	int a = 0;
+	int b = 0;
+	int status = 0;
+
+	//analog board temp sensor
+	status = IicPsMasterSend(Iic, IIC_DEVICE_ID_0, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR3);
+	{
+		//TODO: check status here
+		//set the proper error code so that we know that the module temp sensor had a problem
+	}
+	status = IicPsMasterRecieve(Iic, i2c_Recv_Buffer, IIC_SLAVE_ADDR3);
+	a = i2c_Recv_Buffer[0]<< 5;
+	b = a | i2c_Recv_Buffer[1] >> 3;
+	if(i2c_Recv_Buffer[0] >= 128)
+	{
+		b = (b - 8192) / 16;
+	}
+	else
+	{
+		b = b / 16;
+	}
+	analog_board_temp = b;
+
+	//reset
+	a = 0; b = 0; memset(i2c_Recv_Buffer, '\0', sizeof(unsigned char) * 2);
+	//digital board sensor
+	status = IicPsMasterSend(Iic, IIC_DEVICE_ID_1, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR2);
+	{
+		//TODO: check status here
+		//set the proper error code so that we know that the module temp sensor had a problem
+	}
+	status = IicPsMasterRecieve(Iic, i2c_Recv_Buffer, IIC_SLAVE_ADDR2);
+	a = i2c_Recv_Buffer[0]<< 5;
+	b = a | i2c_Recv_Buffer[1] >> 3;
+	if(i2c_Recv_Buffer[0] >= 128)
+	{
+		b = (b - 8192) / 16;
+	}
+	else
+	{
+		b = b / 16;
+	}
+	digital_board_temp = b;
+
+	//reset
+	a = 0; b = 0; memset(i2c_Recv_Buffer, '\0', sizeof(unsigned char) * 2);
+	//module temp sensor
+	status = IicPsMasterSend(Iic, IIC_DEVICE_ID_0, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR5);
+	if(status != XST_SUCCESS)
+	{
+		//TODO: check status here
+		//set the proper error code so that we know that the module temp sensor had a problem
+	}
+	status = IicPsMasterRecieve(Iic, i2c_Recv_Buffer, IIC_SLAVE_ADDR5);
+	a = i2c_Recv_Buffer[0]<< 5;
+	b = a | i2c_Recv_Buffer[1] >> 3;
+	if(i2c_Recv_Buffer[0] >= 128)
+	{
+		b = (b - 8192) / 16;
+	}
+	else
+	{
+		b = b / 16;
+	}
+	modu_board_temp = b;
+
+	return status;
+}
 /*
  * Setter function for the mode byte
  *
@@ -207,9 +288,6 @@ int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 
 	i2c_Send_Buffer[0] = 0x0;
 	i2c_Send_Buffer[1] = 0x0;
-	int IIC_SLAVE_ADDR2 = 0x4B;	//Temp sensor on digital board
-	int IIC_SLAVE_ADDR3 = 0x48;	//Temp sensor on the analog board
-	int IIC_SLAVE_ADDR5 = 0x4A;	//Extra Temp Sensor Board, mounted near the modules
 
 	switch(check_temp_sensor){
 	case 0:	//analog board
@@ -219,8 +297,8 @@ int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 			TempTime = (t_current - t_start)/COUNTS_PER_SECOND; //temp time is reset
 			check_temp_sensor++;
 
-			IicPsMasterSend(Iic, IIC_DEVICE_ID_0, i2c_Send_Buffer, i2c_Recv_Buffer, &IIC_SLAVE_ADDR3);
-			IicPsMasterRecieve(Iic, i2c_Recv_Buffer, &IIC_SLAVE_ADDR3);
+			IicPsMasterSend(Iic, IIC_DEVICE_ID_0, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR3);
+			IicPsMasterRecieve(Iic, i2c_Recv_Buffer, IIC_SLAVE_ADDR3);
 			a = i2c_Recv_Buffer[0]<< 5;
 			b = a | i2c_Recv_Buffer[1] >> 3;
 			if(i2c_Recv_Buffer[0] >= 128)
@@ -241,8 +319,8 @@ int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 			TempTime = (t_current - t_start)/COUNTS_PER_SECOND; //temp time is reset
 			check_temp_sensor++;
 
-			IicPsMasterSend(Iic, IIC_DEVICE_ID_1, i2c_Send_Buffer, i2c_Recv_Buffer, &IIC_SLAVE_ADDR2);
-			IicPsMasterRecieve(Iic, i2c_Recv_Buffer, &IIC_SLAVE_ADDR2);
+			IicPsMasterSend(Iic, IIC_DEVICE_ID_1, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR2);
+			IicPsMasterRecieve(Iic, i2c_Recv_Buffer, IIC_SLAVE_ADDR2);
 			a = i2c_Recv_Buffer[0]<< 5;
 			b = a | i2c_Recv_Buffer[1] >> 3;
 			if(i2c_Recv_Buffer[0] >= 128)
@@ -263,8 +341,8 @@ int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 			TempTime = (t_current - t_start)/COUNTS_PER_SECOND; //temp time is reset
 			check_temp_sensor = 0;
 
-			status = IicPsMasterSend(Iic, IIC_DEVICE_ID_0, i2c_Send_Buffer, i2c_Recv_Buffer, &IIC_SLAVE_ADDR5);
-			status = IicPsMasterRecieve(Iic, i2c_Recv_Buffer, &IIC_SLAVE_ADDR5);
+			status = IicPsMasterSend(Iic, IIC_DEVICE_ID_0, i2c_Send_Buffer, i2c_Recv_Buffer, IIC_SLAVE_ADDR5);
+			status = IicPsMasterRecieve(Iic, i2c_Recv_Buffer, IIC_SLAVE_ADDR5);
 			a = i2c_Recv_Buffer[0]<< 5;
 			b = a | i2c_Recv_Buffer[1] >> 3;
 			if(i2c_Recv_Buffer[0] >= 128)
