@@ -72,7 +72,7 @@ typedef struct {
 	unsigned char time_LSB1;
 	unsigned char time_LSB2;
 	unsigned char time_LSB3;
-	unsigned char modu_temp;
+	char modu_temp;
 }CPS_EVENT_STRUCT_TYPE;
 
 //Function Prototypes
@@ -87,7 +87,7 @@ float convertToSeconds( unsigned int time );
 unsigned int convertToCycles( float time );
 bool cpsCheckTime( unsigned int time );
 CPS_EVENT_STRUCT_TYPE * cpsGetEvent( void );
-bool CPSIsWithinEllipse( double energy, double psd, int module_num, int ellipse_num );
-int CPSUpdateTallies(double energy, double psd, int pmt_id);
+bool CPSIsWithinEllipse( int energy, int psd, int pmt_id, int module_num, int ellipse_num );
+int CPSUpdateTallies(int energy_bin, int psd_bin, int pmt_id);
 
 #endif /* SRC_CPSDATAPRODUCT_H_ */

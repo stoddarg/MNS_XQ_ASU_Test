@@ -153,6 +153,7 @@ int ProcessData( unsigned int * data_raw )
 								event_holder.field1 |= 0x00; //No hit pattern detected
 								//do we want to keep processing this event? If there is no hit ID coming through, is it just noise?
 								//keep this case for now so we have a reminder to ask about this situation
+								//we don't want this event in terms of CPS, 2DH, but we want it to go into the EVT data product files
 								break;
 							case PMT_ID_0:
 								event_holder.field1 |= 0x10; //PMT 0
@@ -265,9 +266,9 @@ int ProcessData( unsigned int * data_raw )
 			event_holder.field3 = 0xEE;
 			event_holder.field4 = 0xEE;
 			//assume the time is in field 2, just like in the
-			event_holder.field5 = (unsigned char)(data_raw[iter + 2] >> 24);
-			event_holder.field6 = (unsigned char)(data_raw[iter + 2] >> 16);
-			event_holder.field7 = (unsigned char)(data_raw[iter + 2] >> 8);
+			event_holder.field5 = (unsigned char)(data_raw[iter + 1] >> 24);
+			event_holder.field6 = (unsigned char)(data_raw[iter + 1] >> 16);
+			event_holder.field7 = (unsigned char)(data_raw[iter + 1] >> 8);
 
 			event_buffer[evt_iter] = event_holder;
 			evt_iter++;
@@ -283,17 +284,17 @@ int ProcessData( unsigned int * data_raw )
 			}
 			if( data_raw[iter + 1] == 2147594759 && data_raw[iter + 9] == 111111)
 			{
-				cpsSetFirstEventTime(data_raw[iter + 2]);
-				m_first_event_time_FPGA = data_raw[iter + 2];
+				cpsSetFirstEventTime(data_raw[iter + 1]);
+				m_first_event_time_FPGA = data_raw[iter + 1];
 
 				event_holder.field0 = 0xDD;
 				event_holder.field1 = 0xDD;
 				event_holder.field2 = 0xDD;
 				event_holder.field3 = 0xDD;
 				event_holder.field4 = 0xDD;
-				event_holder.field5 = (unsigned char)(data_raw[iter + 2] >> 24);
-				event_holder.field6 = (unsigned char)(data_raw[iter + 2] >> 16);
-				event_holder.field7 = (unsigned char)(data_raw[iter + 2] >> 8);
+				event_holder.field5 = (unsigned char)(data_raw[iter + 1] >> 24);
+				event_holder.field6 = (unsigned char)(data_raw[iter + 1] >> 16);
+				event_holder.field7 = (unsigned char)(data_raw[iter + 1] >> 8);
 
 				event_buffer[evt_iter] = event_holder;
 				evt_iter++;

@@ -166,4 +166,7 @@
 #define DRAM_BASE		0xA000000u
 #define DRAM_CEILING	0xA004000u
 
+//DAQ Neutron Counting
+#define NEUTRON_FOUND	1
+
 #endif /* SRC_LUNAH_DEFINES_H_ */

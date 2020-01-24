@@ -19,8 +19,6 @@
 int Save2DHToSD( int pmt_ID );
 unsigned int Get_2DHXIndex( void );
 unsigned int Get_2DHYIndex( void );
-int Tally2DH(double energy_value, double psd_value, unsigned int pmt_ID);
-unsigned int Get2DHArrayIndexX( void );
-unsigned int Get2DHArrayIndexY( void );
+int Tally2DH(int energy_bin, int psd_bin, int pmt_ID);
 
 #endif /* SRC_TWODHISTO_H_ */
