@@ -13,10 +13,6 @@ static unsigned int m_previous_1sec_interval_time;	//the previous 1 second inter
 static float m_num_intervals_elapsed;				//how many intervals have elapsed during the current run (effectively one/sec)
 static CPS_EVENT_STRUCT_TYPE cpsEvent;				//the most recent CPS "event" (1 second of counts)
 static const CPS_EVENT_STRUCT_TYPE cpsEmptyStruct;	//an empty 'zero' struct to init or clear other structs
-static unsigned short m_neutrons_ellipse1;			//neutrons with PSD
-static unsigned short m_neutrons_ellipse2;			//neutrons wide cut
-static unsigned short m_non_neutron_events;			//all non-neutron events
-static unsigned short m_events_over_threshold;		//count all events which trigger the system
 
 static XTime cps_t_elapsed;	//was LocalTime
 static XTime cps_t_next_interval;	//added to take the place of t_elapsed
@@ -65,11 +61,7 @@ void CPSInit( void )
 	m_previous_1sec_interval_time = 0;
 	m_num_intervals_elapsed = 0;
 	cpsEvent = cpsEmptyStruct;
-	m_neutrons_ellipse1 = 0;
-	m_neutrons_ellipse2 = 0;
-	m_non_neutron_events = 0;
-	m_events_over_threshold = 0;
-	//get the neutron cuts
+	//get the user-supplied neutron cuts
 	m_cfg_buff = *GetConfigBuffer();
 	m_current_module_temp = GetModuTemp();
 
@@ -78,18 +70,8 @@ void CPSInit( void )
 
 void CPSResetCounts( void )
 {
-	m_neutrons_ellipse1 = 0;	//reset the values from processing
-	m_neutrons_ellipse2 = 0;
-	m_non_neutron_events = 0;
-	m_events_over_threshold = 0;
-	cpsEvent.n_ellipse1_MSB = 0;//reset values in the struct we report
-	cpsEvent.n_ellipse1_LSB = 0;
-	cpsEvent.n_ellipse2_MSB = 0;
-	cpsEvent.n_ellipse2_LSB = 0;
-	cpsEvent.non_n_events_MSB = 0;
-	cpsEvent.non_n_events_LSB = 0;
-	cpsEvent.high_energy_events_MSB = 0;
-	cpsEvent.high_energy_events_LSB = 0;
+
+	cpsEvent = cpsEmptyStruct;
 	return;
 }
 
@@ -191,26 +173,23 @@ bool cpsCheckTime( unsigned int time )
  *  returns a pointer to the struct after updating it with the most up-to-date
  *  information regarding the DAQ run.
  *
+ * We clear the entire structure after each one-second interval elapses, then
+ *  the values for each PMT get populated as the buffers are processed. This
+ *  means that the only numbers which need to get re-written are the event ID,
+ *  the time, and the temperature.
+ *
  * @param	None
  *
  * @return	Pointer to a CPS Event held in a struct
  */
 CPS_EVENT_STRUCT_TYPE * cpsGetEvent( void )
 {
-	cpsEvent.n_ellipse1_MSB = (unsigned char)(m_neutrons_ellipse1 >> 8);
-	cpsEvent.n_ellipse1_LSB = (unsigned char)(m_neutrons_ellipse1);
-	cpsEvent.n_ellipse2_MSB = (unsigned char)(m_neutrons_ellipse2 >> 8);
-	cpsEvent.n_ellipse2_LSB = (unsigned char)(m_neutrons_ellipse2);
-	cpsEvent.non_n_events_MSB = (unsigned char)(m_non_neutron_events >> 8); //will need to modify this to take non-neutron cuts
-	cpsEvent.non_n_events_LSB = (unsigned char)(m_non_neutron_events);
-	cpsEvent.high_energy_events_MSB = (unsigned char)(m_events_over_threshold >> 8);
-	cpsEvent.high_energy_events_LSB = (unsigned char)(m_events_over_threshold);
 	cpsEvent.event_id = 0x55;	//use the APID for CPS
+	cpsEvent.modu_temp = (char)GetModuTemp();
 	cpsEvent.time_MSB = (unsigned char)(m_previous_1sec_interval_time >> 24);
 	cpsEvent.time_LSB1 = (unsigned char)(m_previous_1sec_interval_time >> 16);
 	cpsEvent.time_LSB2 = (unsigned char)(m_previous_1sec_interval_time >> 8);
 	cpsEvent.time_LSB3 = (unsigned char)(m_previous_1sec_interval_time);
-	cpsEvent.modu_temp = (char)GetModuTemp();
 
 	return &cpsEvent;
 }
@@ -246,13 +225,39 @@ bool CPSIsWithinEllipse( int energy, int psd, int pmt_id, int module_num, int el
 		//check y-coords
 		if(	yval <  c1 * sqrt( c2 * c2 - xval * xval) && yval > -c1 * sqrt( c2 * c2 - xval * xval))
 		{
-			if(ellipse_num % 2 == 0)
-			{
-				//this grabs ellipse 1 for each PMT
-				m_neutrons_ellipse1++;
-				IncNeutronTotal( pmt_id, NEUTRON_FOUND);
-			}
+			//add a count to the appropriate CPS event field //this is based on PMT ID and ellipse number
 			ret = TRUE;
+			switch(pmt_id)
+			{
+			case PMT_ID_0:
+				if(ellipse_num % 2 == 0)
+					cpsEvent.n_ellipse1_0++;
+				else
+					cpsEvent.n_ellipse2_0++;
+				break;
+			case PMT_ID_1:
+				if(ellipse_num % 2 == 0)
+					cpsEvent.n_ellipse1_1++;
+				else
+					cpsEvent.n_ellipse2_1++;
+				break;
+			case PMT_ID_2:
+				if(ellipse_num % 2 == 0)
+					cpsEvent.n_ellipse1_2++;
+				else
+					cpsEvent.n_ellipse2_2++;
+				break;
+			case PMT_ID_3:
+				if(ellipse_num % 2 == 0)
+					cpsEvent.n_ellipse1_3++;
+				else
+					cpsEvent.n_ellipse2_3++;
+				break;
+			default:
+				//what to do if we get a bad PMT ID?
+				ret = FALSE;
+				break;
+			}
 		}
 		else
 		{
@@ -300,18 +305,20 @@ bool CPSIsWithinEllipse( int energy, int psd, int pmt_id, int module_num, int el
  * @param	(int) value for the energy calculated from the Full Integral from the event
  * @param	(int) value for the PSD calculated from the short and long integrals from the event
  *
- * @return	(int) 	returns a 1 if there was a hit in the regular or wide neutron cut boxes
+ * @return	(int) 	returns a 1 if there was a hit in the primary or secondary neutron cut windows
  * 					0 if no hit was found
  * 					-1 if there was an error with the PMT hit ID
  */
 int CPSUpdateTallies(int energy_bin, int psd_bin, int pmt_id)
 {
+	int status = 0;
 	int iter = 0;
 	int check_temp = 0;
-	int m_neutron_detected = 0;
 	int module_id_num = 0;
-	int ell_1 = 0;	//ellipse 1
-	int ell_2 = 0;	//ellipse 2
+	int ell_1 = 0;
+	int ell_2 = 0;
+	int n_detected_ell_1 = 0;
+	int n_detected_ell_2 = 0;
 	double MaxNRG = 0;
 	double MinNRG = 0;
 	double MaxPSD = 0;
@@ -371,54 +378,76 @@ int CPSUpdateTallies(int energy_bin, int psd_bin, int pmt_id)
 		module_id_num = 0;
 		ell_1 = 0;
 		ell_2 = 1;
-		if(	CPSIsWithinEllipse(energy_bin, psd_bin, pmt_id, module_id_num, ell_1) == TRUE)
-			m_neutron_detected = 1;
-		else if( CPSIsWithinEllipse(energy_bin, psd_bin,  pmt_id, module_id_num, ell_2) == TRUE)
-			m_neutron_detected = 1;
-		else
-			m_non_neutron_events++;
+		if(energy_bin >= TWODH_X_BINS)
+			cpsEvent.high_energy_events_0++;
 		break;
 	case PMT_ID_1:
 		module_id_num = 1;
 		ell_1 = 2;
 		ell_2 = 3;
-		if(	CPSIsWithinEllipse(energy_bin, psd_bin, PMT_ID_0, module_id_num, ell_1) == TRUE)
-			m_neutron_detected = 1;
-		else if( CPSIsWithinEllipse(energy_bin, psd_bin, PMT_ID_0, module_id_num, ell_2) == TRUE)
-			m_neutron_detected = 1;
-		else
-			m_non_neutron_events++;
+		if(energy_bin >= TWODH_X_BINS)
+			cpsEvent.high_energy_events_1++;
 		break;
 	case PMT_ID_2:
 		module_id_num = 2;
 		ell_1 = 4;
 		ell_2 = 5;
-		if(	CPSIsWithinEllipse(energy_bin, psd_bin, PMT_ID_0, module_id_num, ell_1) == TRUE)
-			m_neutron_detected = 1;
-		else if( CPSIsWithinEllipse(energy_bin, psd_bin, PMT_ID_0, module_id_num, ell_2) == TRUE)
-			m_neutron_detected = 1;
-		else
-			m_non_neutron_events++;
+		if(energy_bin >= TWODH_X_BINS)
+			cpsEvent.high_energy_events_2++;
 		break;
 	case PMT_ID_3:
 		module_id_num = 3;
 		ell_1 = 6;
 		ell_2 = 7;
-		if(	CPSIsWithinEllipse(energy_bin, psd_bin, PMT_ID_0, module_id_num, ell_1) == TRUE)
-			m_neutron_detected = 1;
-		else if( CPSIsWithinEllipse(energy_bin, psd_bin, PMT_ID_0, module_id_num, ell_2) == TRUE)
-			m_neutron_detected = 1;
-		else
-			m_non_neutron_events++;
+		if(energy_bin >= TWODH_X_BINS)
+			cpsEvent.high_energy_events_3++;
 		break;
 	default:
-		m_neutron_detected = -1;
+		status = -1;
 		break;
 	}
 
-	//also collect the values for events with energy greater than 10 MeV
-	if(energy_bin >= TWODH_X_BINS)	//this will eventually be something like ConfigBuff.parameter
-		m_events_over_threshold++;
+	if(status != -1)
+	{
+		if(	CPSIsWithinEllipse(energy_bin, psd_bin, pmt_id, module_id_num, ell_1) == TRUE)
+			n_detected_ell_1 = 1;
+		else
+			n_detected_ell_1 = 0;
 
-	return m_neutron_detected;
+		if( CPSIsWithinEllipse(energy_bin, psd_bin,  pmt_id, module_id_num, ell_2) == TRUE)
+			n_detected_ell_2 = 1;
+		else
+			n_detected_ell_2 = 0;
+
+		if(n_detected_ell_1 == 1 || n_detected_ell_2 == 1)
+			status = 1;
+		else
+		{
+			status = 0;
+			switch(pmt_id)
+			{
+			case PMT_ID_0:
+				cpsEvent.non_n_events_0++;
+				break;
+			case PMT_ID_1:
+				cpsEvent.non_n_events_1++;
+				break;
+			case PMT_ID_2:
+				cpsEvent.non_n_events_2++;
+				break;
+			case PMT_ID_3:
+				cpsEvent.non_n_events_3++;
+				break;
+			default:
+				status = -1;
+				break;
+			}
+		}
+
+		//send the result of these checks to the utility module
+		IncNeutronTotal( pmt_id, NEUTRON_FOUND);
+
+	}
+
+	return status;
 }

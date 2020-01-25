@@ -12,6 +12,7 @@
 #include <xtime_l.h>
 #include <xuartps.h>
 #include "ff.h"
+#include "CPSDataProduct.h"		//get access to cpsEvent struct and access functions
 #include "ReadCommandType.h"	//gives access to last command strings
 #include "lunah_defines.h"
 #include "LI2C_Interface.h"		//talk to I2C devices (temperature sensors)

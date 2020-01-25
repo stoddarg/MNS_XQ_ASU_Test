@@ -12,67 +12,51 @@
 #include "lunah_utils.h"	//access to module temp
 #include "SetInstrumentParam.h"	//access to the neutron cuts
 
-#define CPS_EVENT_SIZE	14
-//#define CPS_EVENT_SIZE	40
+//#define CPS_EVENT_SIZE	14
+#define CPS_EVENT_SIZE	40
 
 /*
  * This is the CPS event structure and has the follow data fields:
- * 	event ID = 0x55
- * 	n_ellipse1_MSB = events which are within the first ellipse
- * 	n_ellipse1_LSB
- * 	n_ellipse2_MSB = events which are within the second ellipse
- * 	n_ellipse2_LSB
- * 	non_n_events_MSB = events which are outside both ellipses are classified as non-neutron events
- * 	non_n_events_LSB
- * 	high_energy_events_MSB = events with an energy greater than 10 MeV (threshold for energy may change)
- *  high_energy_events_LSB
- *  time_MSB = FPGA time from the beginning of the current 1s interval (extremely important!!!)
+ * 	event ID 		= 0x55
+ * 	---------- Per-module numbers
+ * 	n_ellipse1 		= events which are within the first ellipse
+ * 	n_ellipse2 		= events which are within the second ellipse
+ * 	non_n_events 	= events which are outside both ellipses are classified as non-neutron events
+ * 	high_energy_events = events with an energy above our dynamic range
+ *  ---------- Per-module numbers
+ *  event_counts 	= total number of event windows opened by the FPGA in the current 1-second interval
+ *  time_MSB 		= FPGA time from the beginning of the current 1s interval (extremely important!!!)
  *  time_LSB1
  *  time_LSB2
  *  time_LSB3
- *  modu_temp = the module temperature
+ *
+ * There is one set of per-module numbers reported for each PMT, they are numbered 0-3
+ *
  */
 typedef struct {
 	unsigned char event_id;
-	unsigned char n_ellipse1_MSB;
-	unsigned char n_ellipse1_LSB;
-	unsigned char n_ellipse2_MSB;
-	unsigned char n_ellipse2_LSB;
-	unsigned char non_n_events_MSB;
-	unsigned char non_n_events_LSB;
-	unsigned char high_energy_events_MSB;
-	unsigned char high_energy_events_LSB;
-//	unsigned char n_ellipse1_MSB_1;
-//	unsigned char n_ellipse1_LSB_1;
-//	unsigned char n_ellipse2_MSB_1;
-//	unsigned char n_ellipse2_LSB_1;
-//	unsigned char non_n_events_MSB_1;
-//	unsigned char non_n_events_LSB_1;
-//	unsigned char high_energy_events_MSB_1;
-//	unsigned char high_energy_events_LSB_1;
-//	unsigned char n_ellipse1_MSB_2;
-//	unsigned char n_ellipse1_LSB_2;
-//	unsigned char n_ellipse2_MSB_2;
-//	unsigned char n_ellipse2_LSB_2;
-//	unsigned char non_n_events_MSB_2;
-//	unsigned char non_n_events_LSB_2;
-//	unsigned char high_energy_events_MSB_2;
-//	unsigned char high_energy_events_LSB_2;
-//	unsigned char n_ellipse1_MSB_3;
-//	unsigned char n_ellipse1_LSB_3;
-//	unsigned char n_ellipse2_MSB_3;
-//	unsigned char n_ellipse2_LSB_3;
-//	unsigned char non_n_events_MSB_3;
-//	unsigned char non_n_events_LSB_3;
-//	unsigned char high_energy_events_MSB_3;
-//	unsigned char high_energy_events_LSB_3;
-//	unsigned char dead_time_MSB;
-//	unsigned char dead_time_LSB;
+	char modu_temp;
+	unsigned short n_ellipse1_0;
+	unsigned short n_ellipse2_0;
+	unsigned short non_n_events_0;
+	unsigned short high_energy_events_0;
+	unsigned short n_ellipse1_1;
+	unsigned short n_ellipse2_1;
+	unsigned short non_n_events_1;
+	unsigned short high_energy_events_1;
+	unsigned short n_ellipse1_2;
+	unsigned short n_ellipse2_2;
+	unsigned short non_n_events_2;
+	unsigned short high_energy_events_2;
+	unsigned short n_ellipse1_3;
+	unsigned short n_ellipse2_3;
+	unsigned short non_n_events_3;
+	unsigned short high_energy_events_3;
+	unsigned short event_counts;
 	unsigned char time_MSB;
 	unsigned char time_LSB1;
 	unsigned char time_LSB2;
 	unsigned char time_LSB3;
-	char modu_temp;
 }CPS_EVENT_STRUCT_TYPE;
 
 //Function Prototypes

@@ -41,7 +41,7 @@ int Save2DHToSD( int pmt_ID )
 	FIL save2DH;
 	FRESULT f_res = FR_OK;
 
-	unsigned short (*m_2DH_holder)[TWODH_X_BINS][TWODH_Y_BINS];	//pointer to 2D array
+	unsigned short (*m_2DH_holder)[TWODH_X_BINS][TWODH_Y_BINS] = NULL;	//pointer to 2D array
 
 	switch(pmt_ID)
 	{

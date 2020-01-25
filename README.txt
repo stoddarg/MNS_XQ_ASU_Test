@@ -1,0 +1,1 @@
+ - Version 7.2.D - in the process of streamlining the process_data and data acquisition system; CPS, 2DH, and SOH have all been updated; working on bringing on CPS data into the SOH; updating the SOH format
