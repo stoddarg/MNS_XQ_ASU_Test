@@ -1,8 +1,8 @@
 /*
- * process_data.c
+ * process_data_streamline.c
  *
- *  Created on: May 9, 2018
- *      Author: gstoddard
+ *  Created on: Jan 23, 2020
+ *      Author: GStoddard
  */
 
 #include "process_data.h"
@@ -11,8 +11,6 @@
 static int evt_iter;										//event buffer iterator
 static const GENERAL_EVENT_TYPE evtEmptyStruct;				//use this to reset the holder struct each iteration
 static GENERAL_EVENT_TYPE event_buffer[EVENT_BUFFER_SIZE];	//buffer to store events //2048 * 8 bytes = 16384 bytes
-static unsigned int m_neutron_counts;						//total neutron counts
-//static unsigned int m_event_number;							//event number holder
 static unsigned int m_first_event_time_FPGA;				//the first event time which needs to be written into every data product header
 /*
  * Helper function to allow external functions to grab the EVTs buffer and write it to SD
@@ -59,12 +57,10 @@ int ProcessData( unsigned int * data_raw )
 	int iter = 0;
 	int m_ret = 0;	//for 2DH tallies
 	int m_events_processed = 0;
-	int m_neutron_detected = 0;
-	unsigned int m_x_bin_number = 0;
-	unsigned int m_y_bin_number = 0;
+	int m_energy_bin = 0;
+	int m_psd_bin = 0;
 	unsigned int m_tagging_bit = 0;
 	unsigned int num_bytes_written = 0;
-//	unsigned int m_total_events_holder = 0;
 	unsigned int m_event_number_holder = 0;
 	unsigned int m_pmt_ID_holder = 0;
 	unsigned int m_FPGA_time_holder = 0;
@@ -82,7 +78,6 @@ int ProcessData( unsigned int * data_raw )
 	double li = 0.0;
 	double fi = 0.0;
 	double psd = 0.0;
-	double energy = 0.0;
 	FRESULT f_res = FR_OK;
 	GENERAL_EVENT_TYPE event_holder = evtEmptyStruct;
 
@@ -102,7 +97,7 @@ int ProcessData( unsigned int * data_raw )
 	while(iter < DATA_BUFFER_SIZE)
 	{
 		event_holder = evtEmptyStruct;	//reset event structure
-		m_neutron_detected = 0;			//reset the neutron detected value
+		m_tagging_bit = 0;
 
 		switch(data_raw[iter])
 		{
@@ -116,126 +111,113 @@ int ProcessData( unsigned int * data_raw )
 				break;
 			if(data_raw[iter+1] >= cpsGetCurrentTime())	//time must be the same or increasing
 			{
-				if(data_raw[iter+2] >= m_neutron_counts)	//counts must be the same or increasing
+				if(((data_raw[iter+3] & 0xFFFFFFF0) >> 4) > m_event_number_holder)
 				{
-					if(data_raw[iter+3] > m_event_number_holder)
+					if((data_raw[iter+4] < data_raw[iter+5]) && (data_raw[iter+5] < data_raw[iter+6]) && (data_raw[iter+6] < data_raw[iter+7]))
 					{
-						if((data_raw[iter+4] < data_raw[iter+5]) && (data_raw[iter+5] < data_raw[iter+6]) && (data_raw[iter+6] < data_raw[iter+7]))
+						valid_event = TRUE;
+						//if the first event time has not been recorded, then set one //this allows us to function without a false event
+						if(cpsGetFirstEventTime() == 0)
+							cpsSetFirstEventTime(data_raw[iter+1]);
+						//loop recording the CPS events until we don't need to //this only happens when the current event belongs to the next one-second time interval
+						while(cpsCheckTime(data_raw[iter+1]) == TRUE)
 						{
-							valid_event = TRUE;
-							//if the first event time has not been recorded, then set one //this allows us to function without a false event
-							if(cpsGetFirstEventTime() == 0)
-								cpsSetFirstEventTime(data_raw[iter+1]);
-							//loop recording the CPS events until we don't need to
-							while(cpsCheckTime(data_raw[iter+1]) == TRUE)
+							f_res = f_write(cpsDataFile, (char *)cpsGetEvent(), sizeof(CPS_EVENT_STRUCT_TYPE), &num_bytes_written);
+							if(f_res != FR_OK || num_bytes_written != sizeof(CPS_EVENT_STRUCT_TYPE))
 							{
-								f_res = f_write(cpsDataFile, (char *)cpsGetEvent(), sizeof(CPS_EVENT_STRUCT_TYPE), &num_bytes_written);
-								if(f_res != FR_OK || num_bytes_written != sizeof(CPS_EVENT_STRUCT_TYPE))
-								{
-									//TODO:handle error with writing
-									xil_printf("error writing 4\n");
-								}
-								f_res = f_sync(cpsDataFile);
-								if(f_res != FR_OK || num_bytes_written != sizeof(CPS_EVENT_STRUCT_TYPE))
-								{
-									//TODO:handle error with writing
-									xil_printf("error writing 5\n");
-								}
-								//reset the neutron counts for the CPS data product
-								CPSResetCounts();
+								//TODO:handle error with writing
+								xil_printf("error writing 4\n");
+							}
+							f_res = f_sync(cpsDataFile);
+							if(f_res != FR_OK || num_bytes_written != sizeof(CPS_EVENT_STRUCT_TYPE))
+							{
+								//TODO:handle error with writing
+								xil_printf("error writing 5\n");
+							}
+							//reset the neutron counts for the CPS data product
+							CPSResetCounts();
+						}
+
+						//calculate the moving average of the baseline integral
+						si = 0.0;	li = 0.0;	fi = 0.0;	psd = 0.0;
+						bl4 = bl3; bl3 = bl2; bl2 = bl1;
+						bl1 = (double)data_raw[iter+4] / (16.0 * m_baseline_int);
+						if(bl4 == 0.0)
+							bl_avg = bl1;
+						else
+							bl_avg = (bl4 + bl3 + bl2 + bl1) / 4.0;
+						//calculate the baseline corrected integrals from the event
+						si = ((double)data_raw[iter+5]) / (16.0) - (bl_avg * m_short_int);
+						li = ((double)data_raw[iter+6]) / (16.0) - (bl_avg * m_long_int);
+						fi = ((double)data_raw[iter+7]) / (16.0) - (bl_avg * m_full_int);
+
+						//li, si must be positive, li greater than si (ensures positive psd values and li != si)
+						if( li > 0 && si > 0 && li > si) //TODO: how much should we test here? //si != 0, li > si, si > 0 ?
+							psd = si / (li - si);
+						else
+						{
+							//TODO: PSD value not good
+							psd = 1.999;	//set to highest good bin
+							m_bad_event++;
+						}
+						//calculate the "bin space" values of the energy and PSD
+						m_energy_bin = (int)floor(fi / ((double)TWODH_ENERGY_MAX / (double)TWODH_X_BINS));
+						m_psd_bin = (int)floor(psd / ((double)TWODH_PSD_MAX / (double)TWODH_Y_BINS));
+						//generate the bin value to use
+						if(0 <= m_energy_bin && m_energy_bin < TWODH_X_BINS)
+							m_energy_bin &= 0x01FF;
+						else
+							m_energy_bin = 0x01FF;
+
+						if(0 <= m_psd_bin && m_psd_bin < TWODH_Y_BINS)
+							m_psd_bin &= 0x3F;	//move to 6 bits 10-11-2019
+						else
+							m_psd_bin = 0x3F;
+						//assign this value to the PMT ID so that we have something to compare with the defined PMT hit ID
+						m_pmt_ID_holder = data_raw[iter+3] & 0x0F;
+						if(m_pmt_ID_holder == PMT_ID_0 || m_pmt_ID_holder == PMT_ID_1 || m_pmt_ID_holder == PMT_ID_2 || m_pmt_ID_holder == PMT_ID_3)
+						{
+							//process the event for CPS
+							m_tagging_bit = CPSUpdateTallies(m_energy_bin, m_psd_bin, m_pmt_ID_holder);
+							if(m_tagging_bit < 0)
+							{
+								//TODO: handle the error in the CPS neutron counts
+								// -1 = indicates an error with the PMT hit ID
 							}
 
-							event_holder.field0 = 0xFF;	//event ID is 0xFF
-							m_pmt_ID_holder = data_raw[iter+3] & 0x0F;
-							switch(m_pmt_ID_holder)
+							//process the event for 2DH
+							m_ret = Tally2DH(m_energy_bin, m_psd_bin, m_pmt_ID_holder);
+							if(m_ret != 1)
 							{
-							case NO_HIT_PATTERN:
-								event_holder.field1 |= 0x00; //No hit pattern detected
-								//do we want to keep processing this event? If there is no hit ID coming through, is it just noise?
-								//keep this case for now so we have a reminder to ask about this situation
-								//we don't want this event in terms of CPS, 2DH, but we want it to go into the EVT data product files
-								break;
-							case PMT_ID_0:
-								event_holder.field1 |= 0x10; //PMT 0
-								break;
-							case PMT_ID_1:
-								event_holder.field1 |= 0x20; //PMT 1
-								break;
-							case PMT_ID_2:
-								event_holder.field1 |= 0x40; //PMT 2
-								break;
-							case PMT_ID_3:
-								event_holder.field1 |= 0x80; //PMT 3
-								break;
-							default:
-								//invalid event or Multi-Hit event
-								//TODO: Handle bad/multiple hit IDs
-								event_holder.field1 |= (m_pmt_ID_holder << 4); //OR the bits to get the full hit pattern
-								break;
-							}
-//							m_total_events_holder = data_raw[iter+2] & 0xFFF;	//mask the upper bits we don't care about
-//							event_holder.field1 |= (unsigned char)(m_total_events_holder >> 8);
-//							event_holder.field2 |= (unsigned char)(m_total_events_holder);
-							//changing the number reported from Total Events -> Event Number
-							//Total events tells us how many times the system has been triggered
-							// but Event Number tells us how many event windows have been opened, which is the number we want
-							m_event_number_holder = (data_raw[iter+3] & 0xFFF0) >> 4;	//mask the pmt hid ID bits, then shift over
-							event_holder.field1 |= (unsigned char)(m_event_number_holder >> 8);
-							event_holder.field2 |= (unsigned char)(m_event_number_holder);
-
-							si = 0.0;	li = 0.0;	fi = 0.0;	psd = 0.0;	energy = 0.0;
-							bl4 = bl3; bl3 = bl2; bl2 = bl1;
-							bl1 = (double)data_raw[iter+4] / (16.0 * m_baseline_int);
-							if(bl4 == 0.0)
-								bl_avg = bl1;
-							else
-								bl_avg = (bl4 + bl3 + bl2 + bl1) / 4.0;
-							si = ((double)data_raw[iter+5]) / (16.0) - (bl_avg * m_short_int);
-							li = ((double)data_raw[iter+6]) / (16.0) - (bl_avg * m_long_int);
-							fi = ((double)data_raw[iter+7]) / (16.0) - (bl_avg * m_full_int);
-							energy = fi;
-
-							//li, si must be positive, li greater than si (ensures positive psd values and li != si)
-							if( li > 0 && si > 0 && li > si) //TODO: how much should we test here? //si != 0, li > si, si > 0 ?
-								psd = si / (li - si);
-							else
-							{
-								//TODO: PSD value not good
-								psd = 1.999;	//set to highest good bin
-								m_bad_event++;
-							}
-
-							m_neutron_detected = CPSUpdateTallies(energy, psd, m_pmt_ID_holder);
-//							IncNeutronTotal( m_pmt_ID_holder, m_neutron_detected);	//increment the neutron total by 1? TODO: check the return here and make sure it has increased?
-							if(m_neutron_detected == 1)
-								m_tagging_bit = 1;
-							else
-								m_tagging_bit = 0;
-
-							//add the energy and PSD tallies to the correct histogram
-							m_ret = Tally2DH(energy, psd, m_pmt_ID_holder);
-							if(m_ret == CMD_FAILURE)
-							{
-								//handle error in tallying the event into the 2DH
 								//TODO: identify what can go wrong and handle a bad tally
+								// 0 is the bins were not in the 2DGH
+								//-1 is the PMT ID indicated a multi-hit
 							}
-							m_x_bin_number = Get_2DHXIndex();
-							m_y_bin_number = Get_2DHYIndex();
-							event_holder.field3 |= (unsigned char)(m_x_bin_number >> 1);
-							event_holder.field4 |= (unsigned char)((m_x_bin_number & 0x01) << 7);
-							event_holder.field4 |= (unsigned char)(m_y_bin_number << 1);
-							event_holder.field4 |= (unsigned char)(m_tagging_bit);
-							m_FPGA_time_holder = ((data_raw[iter+1] & 0xFFFFFF00) >> 8);	//mask and shift off the bottom 8 bits
-							event_holder.field5 = (unsigned char)(m_FPGA_time_holder >> 16);
-							event_holder.field6 = (unsigned char)(m_FPGA_time_holder >> 8);
-							event_holder.field7 = (unsigned char)(m_FPGA_time_holder);
-							event_buffer[evt_iter] = event_holder;
-							evt_iter++;
-							iter += 8;
-							m_events_processed++;
 						}
 						else
-							valid_event = FALSE;
+						{
+							//mark the event as a bad event //we are not interested in events with PMT ID of 0 or multi-hit events
+							m_bad_event++;
+						}
+
+						event_holder.field0 = 0xFF;
+						event_holder.field1 |= (m_pmt_ID_holder		& 0x000F) << 4;
+						m_event_number_holder = (data_raw[iter+3]	& 0xFFF0) >> 4;
+						event_holder.field1 |= (unsigned char)((m_event_number_holder	& 0x0F00) >> 8);
+						event_holder.field2 |= (unsigned char)( m_event_number_holder	& 0x0FF);
+						event_holder.field3 |= (unsigned char)((m_energy_bin	& 0x1FE) >> 1);
+						event_holder.field4 |= (unsigned char)((m_energy_bin	& 0x001) << 7);
+						event_holder.field4 |= (unsigned char)((m_psd_bin	 	& 0x3F) << 1);
+						event_holder.field4 |= (unsigned char)( m_tagging_bit 	& 0x01);
+						m_FPGA_time_holder = ((data_raw[iter+1] & 0xFFFFFF00) >> 8);
+						event_holder.field5 = (unsigned char)((m_FPGA_time_holder & 0xFF0000) >> 16);
+						event_holder.field6 = (unsigned char)((m_FPGA_time_holder & 0x00FF00)>> 8);
+						event_holder.field7 = (unsigned char)( m_FPGA_time_holder & 0x0000FF);
+
+						event_buffer[evt_iter] = event_holder;
+						evt_iter++;
+						iter += 8;
+						m_events_processed++;
 					}
 					else
 						valid_event = FALSE;
@@ -324,3 +306,4 @@ int ProcessData( unsigned int * data_raw )
 	//TODO: give this return value a meaning
 	return 0;
 }
+

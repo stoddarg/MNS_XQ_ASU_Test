@@ -289,7 +289,6 @@ int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 	int b = 0;
 	int status = 0;
 	int bytes_sent = 0;
-	unsigned int local_time_holder = 0;
 
 	switch(check_temp_sensor){
 	case 0:	//analog board
