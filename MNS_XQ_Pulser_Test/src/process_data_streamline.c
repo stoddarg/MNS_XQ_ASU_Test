@@ -122,14 +122,14 @@ int ProcessDataStreamline( unsigned int * data_raw )
 						//loop recording the CPS events until we don't need to //this only happens when the current event belongs to the next one-second time interval
 						while(cpsCheckTime(data_raw[iter+1]) == TRUE)
 						{
-							f_res = f_write(cpsDataFile, (char *)cpsGetEvent(), CPS_EVENT_SIZE, &num_bytes_written);
-							if(f_res != FR_OK || num_bytes_written != CPS_EVENT_SIZE)
+							f_res = f_write(cpsDataFile, (char *)cpsGetEvent(), sizeof(CPS_EVENT_STRUCT_TYPE), &num_bytes_written);
+							if(f_res != FR_OK || num_bytes_written != sizeof(CPS_EVENT_STRUCT_TYPE))
 							{
 								//TODO:handle error with writing
 								xil_printf("error writing 4\n");
 							}
 							f_res = f_sync(cpsDataFile);
-							if(f_res != FR_OK || num_bytes_written != CPS_EVENT_SIZE)
+							if(f_res != FR_OK || num_bytes_written != sizeof(CPS_EVENT_STRUCT_TYPE))
 							{
 								//TODO:handle error with writing
 								xil_printf("error writing 5\n");

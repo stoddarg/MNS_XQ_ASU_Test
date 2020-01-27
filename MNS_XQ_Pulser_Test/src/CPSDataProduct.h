@@ -12,12 +12,12 @@
 #include "lunah_utils.h"	//access to module temp
 #include "SetInstrumentParam.h"	//access to the neutron cuts
 
-//#define CPS_EVENT_SIZE	14
-#define CPS_EVENT_SIZE	40
-
 /*
  * This is the CPS event structure and has the follow data fields:
  * 	event ID 		= 0x55
+ * 	module temperature
+ * 	padding byte 1	= 0x55
+ * 	padding byte 2	= 0x55
  * 	---------- Per-module numbers
  * 	n_ellipse1 		= events which are within the first ellipse
  * 	n_ellipse2 		= events which are within the second ellipse
@@ -25,10 +25,7 @@
  * 	high_energy_events = events with an energy above our dynamic range
  *  ---------- Per-module numbers
  *  event_counts 	= total number of event windows opened by the FPGA in the current 1-second interval
- *  time_MSB 		= FPGA time from the beginning of the current 1s interval (extremely important!!!)
- *  time_LSB1
- *  time_LSB2
- *  time_LSB3
+ *  time	 		= FPGA time from the beginning of the current 1s interval (extremely important!!!)
  *
  * There is one set of per-module numbers reported for each PMT, they are numbered 0-3
  *
@@ -36,27 +33,26 @@
 typedef struct {
 	unsigned char event_id;
 	char modu_temp;
-	unsigned short n_ellipse1_0;
-	unsigned short n_ellipse2_0;
-	unsigned short non_n_events_0;
-	unsigned short high_energy_events_0;
-	unsigned short n_ellipse1_1;
-	unsigned short n_ellipse2_1;
-	unsigned short non_n_events_1;
-	unsigned short high_energy_events_1;
-	unsigned short n_ellipse1_2;
-	unsigned short n_ellipse2_2;
-	unsigned short non_n_events_2;
-	unsigned short high_energy_events_2;
-	unsigned short n_ellipse1_3;
-	unsigned short n_ellipse2_3;
-	unsigned short non_n_events_3;
-	unsigned short high_energy_events_3;
-	unsigned short event_counts;
-	unsigned char time_MSB;
-	unsigned char time_LSB1;
-	unsigned char time_LSB2;
-	unsigned char time_LSB3;
+	unsigned char pad_byte_1;
+	unsigned char pad_byte_2;
+	unsigned int n_ellipse1_0;
+	unsigned int n_ellipse2_0;
+	unsigned int non_n_events_0;
+	unsigned int high_energy_events_0;
+	unsigned int n_ellipse1_1;
+	unsigned int n_ellipse2_1;
+	unsigned int non_n_events_1;
+	unsigned int high_energy_events_1;
+	unsigned int n_ellipse1_2;
+	unsigned int n_ellipse2_2;
+	unsigned int non_n_events_2;
+	unsigned int high_energy_events_2;
+	unsigned int n_ellipse1_3;
+	unsigned int n_ellipse2_3;
+	unsigned int non_n_events_3;
+	unsigned int high_energy_events_3;
+	unsigned int event_counts;
+	unsigned int time;
 }CPS_EVENT_STRUCT_TYPE;
 
 //Function Prototypes

@@ -23,15 +23,15 @@
 
 #define TAB_CHAR_CODE		9
 #define NEWLINE_CHAR_CODE	10
-#define SOH_PACKET_LENGTH	56
+#define SOH_PACKET_LENGTH	93	//56
 #define TEMP_PACKET_LENGTH	19
 
 // prototypes
 void InitStartTime( void );
 XTime GetLocalTime( void );
 XTime GetTempTime(void);
-void ResetNeutronCounts( void );
-int IncNeutronTotal(int pmt_id, int increment);
+void ResetSOHNeutronCounts( void );
+int IncNeutronTotal(int pmt_id, int ellipse_1, int ellipse_2, int non_n, int high_energy, unsigned int time);
 int GetDigiTemp( void );
 int GetAnlgTemp( void );
 int GetModuTemp( void );

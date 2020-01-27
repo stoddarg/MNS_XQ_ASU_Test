@@ -57,10 +57,10 @@ static CONFIG_STRUCT_TYPE m_cfg_buff;	//172 bytes
  */
 void CPSInit( void )
 {
+	cpsEvent = cpsEmptyStruct;
 	first_FPGA_time = 0;
 	m_previous_1sec_interval_time = 0;
 	m_num_intervals_elapsed = 0;
-	cpsEvent = cpsEmptyStruct;
 	//get the user-supplied neutron cuts
 	m_cfg_buff = *GetConfigBuffer();
 	m_current_module_temp = GetModuTemp();
@@ -70,7 +70,6 @@ void CPSInit( void )
 
 void CPSResetCounts( void )
 {
-
 	cpsEvent = cpsEmptyStruct;
 	return;
 }
@@ -186,10 +185,9 @@ CPS_EVENT_STRUCT_TYPE * cpsGetEvent( void )
 {
 	cpsEvent.event_id = 0x55;	//use the APID for CPS
 	cpsEvent.modu_temp = (char)GetModuTemp();
-	cpsEvent.time_MSB = (unsigned char)(m_previous_1sec_interval_time >> 24);
-	cpsEvent.time_LSB1 = (unsigned char)(m_previous_1sec_interval_time >> 16);
-	cpsEvent.time_LSB2 = (unsigned char)(m_previous_1sec_interval_time >> 8);
-	cpsEvent.time_LSB3 = (unsigned char)(m_previous_1sec_interval_time);
+	cpsEvent.pad_byte_1 = 0x55;	//use the APID for CPS
+	cpsEvent.pad_byte_2 = 0x55;	//use the APID for CPS
+	cpsEvent.time = m_previous_1sec_interval_time;
 
 	return &cpsEvent;
 }
@@ -198,6 +196,11 @@ CPS_EVENT_STRUCT_TYPE * cpsGetEvent( void )
  * Helper function which takes in the energy, psd, module number, and the ellipse numbers and calculates the
  *  equations for the ellipses. Then it does the comparison to see if the point (energy, psd) is within the
  *  bounding ellipses.
+ *
+ * TODO: clean up the first few lines of this function - they can be performed less often if held as static variables
+ * 			and calculated with the other neutron cut window parameters
+ * TODO: move away from the sqrt() function and instead work with squares; trig and some math functions are time
+ * 			and processor expensive
  *
  *  @param	(double) the baseline corrected energy value
  *  @param	(double) the baseline corrected PSD value
@@ -319,6 +322,8 @@ int CPSUpdateTallies(int energy_bin, int psd_bin, int pmt_id)
 	int ell_2 = 0;
 	int n_detected_ell_1 = 0;
 	int n_detected_ell_2 = 0;
+	int n_high_e = 0;
+	int non_n_event = 0;
 	double MaxNRG = 0;
 	double MinNRG = 0;
 	double MaxPSD = 0;
@@ -379,30 +384,43 @@ int CPSUpdateTallies(int energy_bin, int psd_bin, int pmt_id)
 		ell_1 = 0;
 		ell_2 = 1;
 		if(energy_bin >= TWODH_X_BINS)
+		{
 			cpsEvent.high_energy_events_0++;
+			n_high_e = 1;
+		}
 		break;
 	case PMT_ID_1:
 		module_id_num = 1;
 		ell_1 = 2;
 		ell_2 = 3;
 		if(energy_bin >= TWODH_X_BINS)
+		{
 			cpsEvent.high_energy_events_1++;
+			n_high_e = 1;
+		}
 		break;
 	case PMT_ID_2:
 		module_id_num = 2;
 		ell_1 = 4;
 		ell_2 = 5;
 		if(energy_bin >= TWODH_X_BINS)
+		{
 			cpsEvent.high_energy_events_2++;
+			n_high_e = 1;
+		}
 		break;
 	case PMT_ID_3:
 		module_id_num = 3;
 		ell_1 = 6;
 		ell_2 = 7;
 		if(energy_bin >= TWODH_X_BINS)
+		{
 			cpsEvent.high_energy_events_3++;
+			n_high_e = 1;
+		}
 		break;
 	default:
+		n_high_e = 0;
 		status = -1;
 		break;
 	}
@@ -424,6 +442,7 @@ int CPSUpdateTallies(int energy_bin, int psd_bin, int pmt_id)
 		else
 		{
 			status = 0;
+			non_n_event = 1;
 			switch(pmt_id)
 			{
 			case PMT_ID_0:
@@ -445,8 +464,7 @@ int CPSUpdateTallies(int energy_bin, int psd_bin, int pmt_id)
 		}
 
 		//send the result of these checks to the utility module
-		IncNeutronTotal( pmt_id, NEUTRON_FOUND);
-
+		IncNeutronTotal( pmt_id, n_detected_ell_1, n_detected_ell_2, non_n_event, n_high_e, m_previous_1sec_interval_time);
 	}
 
 	return status;

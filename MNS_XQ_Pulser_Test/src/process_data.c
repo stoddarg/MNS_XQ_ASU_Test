@@ -129,14 +129,14 @@ int ProcessData( unsigned int * data_raw )
 							//loop recording the CPS events until we don't need to
 							while(cpsCheckTime(data_raw[iter+1]) == TRUE)
 							{
-								f_res = f_write(cpsDataFile, (char *)cpsGetEvent(), CPS_EVENT_SIZE, &num_bytes_written);
-								if(f_res != FR_OK || num_bytes_written != CPS_EVENT_SIZE)
+								f_res = f_write(cpsDataFile, (char *)cpsGetEvent(), sizeof(CPS_EVENT_STRUCT_TYPE), &num_bytes_written);
+								if(f_res != FR_OK || num_bytes_written != sizeof(CPS_EVENT_STRUCT_TYPE))
 								{
 									//TODO:handle error with writing
 									xil_printf("error writing 4\n");
 								}
 								f_res = f_sync(cpsDataFile);
-								if(f_res != FR_OK || num_bytes_written != CPS_EVENT_SIZE)
+								if(f_res != FR_OK || num_bytes_written != sizeof(CPS_EVENT_STRUCT_TYPE))
 								{
 									//TODO:handle error with writing
 									xil_printf("error writing 5\n");
@@ -206,7 +206,7 @@ int ProcessData( unsigned int * data_raw )
 							}
 
 							m_neutron_detected = CPSUpdateTallies(energy, psd, m_pmt_ID_holder);
-							IncNeutronTotal( m_pmt_ID_holder, m_neutron_detected);	//increment the neutron total by 1? TODO: check the return here and make sure it has increased?
+//							IncNeutronTotal( m_pmt_ID_holder, m_neutron_detected);	//increment the neutron total by 1? TODO: check the return here and make sure it has increased?
 							if(m_neutron_detected == 1)
 								m_tagging_bit = 1;
 							else
