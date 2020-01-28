@@ -25,6 +25,9 @@
 #define NEWLINE_CHAR_CODE	10
 #define SOH_PACKET_LENGTH	93	//56
 #define TEMP_PACKET_LENGTH	19
+#define	TX_FILE_STRING_BUFF_SIZE	100
+#define CMD_BUFFER_SIZE		100
+#define	SOH_BUFFER_SIZE		150
 
 // prototypes
 void InitStartTime( void );

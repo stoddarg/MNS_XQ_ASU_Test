@@ -264,7 +264,11 @@ int ProcessData( unsigned int * data_raw )
 				iter++;
 				break;	//skip out early
 			}
-			if( data_raw[iter + 1] == 2147594759 && data_raw[iter + 9] == 111111)
+			while(data_raw[iter+1] == 0x8001B207 && iter < (DATA_BUFFER_SIZE - EVT_EVENT_SIZE))//handles any number of 111111's in succession
+			{
+				iter++;
+			}
+			if( data_raw[iter + 1] == 2147594759 && data_raw[iter + 8] == 111111)
 			{
 				cpsSetFirstEventTime(data_raw[iter + 1]);
 				m_first_event_time_FPGA = data_raw[iter + 1];

@@ -61,7 +61,7 @@ XTime GetTempTime(void)
 
 void ResetSOHNeutronCounts( void )
 {
-	CPS_EVENT_STRUCT_TYPE cpsEmptyStruct;
+	CPS_EVENT_STRUCT_TYPE cpsEmptyStruct = {};
 	cpsEventAgg = cpsEmptyStruct;
 	return;
 }
@@ -282,7 +282,7 @@ void CheckForSOH(XIicPs * Iic, XUartPs Uart_PS)
 int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 {
 	//Variables
-	unsigned char report_buff[100] = "";
+	unsigned char report_buff[SOH_BUFFER_SIZE] = "";
 	unsigned char i2c_Send_Buffer[2] = {};
 	unsigned char i2c_Recv_Buffer[2] = {};
 	int a = 0;
@@ -293,7 +293,7 @@ int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 	switch(check_temp_sensor){
 	case 0:	//analog board
 		XTime_GetTime(&t_current);
-		if(((t_current - t_start)/COUNTS_PER_SECOND) >= (TempTime + 60))
+		if(((t_current - t_start)/COUNTS_PER_SECOND) >= (TempTime + 10))
 		{
 			TempTime = (t_current - t_start)/COUNTS_PER_SECOND; //temp time is reset
 			check_temp_sensor++;
@@ -315,7 +315,7 @@ int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 		break;
 	case 1:	//digital board
 		XTime_GetTime(&t_current);
-		if(((t_current - t_start)/COUNTS_PER_SECOND) >= (TempTime + 60))
+		if(((t_current - t_start)/COUNTS_PER_SECOND) >= (TempTime + 10))
 		{
 			TempTime = (t_current - t_start)/COUNTS_PER_SECOND; //temp time is reset
 			check_temp_sensor++;
@@ -337,7 +337,7 @@ int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 		break;
 	case 2:	//module sensor
 		XTime_GetTime(&t_current);
-		if(((t_current - t_start)/COUNTS_PER_SECOND) >= (TempTime + 60))
+		if(((t_current - t_start)/COUNTS_PER_SECOND) >= (TempTime + 10))
 		{
 			TempTime = (t_current - t_start)/COUNTS_PER_SECOND; //temp time is reset
 			check_temp_sensor = 0;
@@ -369,7 +369,7 @@ int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 	switch(packet_type)
 	{
 	case READ_TMP_CMD:
-		PutCCSDSHeader(report_buff, APID_TEMP, GF_UNSEG_PACKET, 1, TEMP_PACKET_LENGTH);
+		PutCCSDSHeader(report_buff, APID_TEMP, GF_UNSEG_PACKET, 0, TEMP_PACKET_LENGTH);
 		CalculateChecksums(report_buff);
 
 		bytes_sent = XUartPs_Send(&Uart_PS, (u8 *)report_buff, (TEMP_PACKET_LENGTH + CCSDS_HEADER_FULL));
@@ -403,7 +403,7 @@ int report_SOH(XIicPs * Iic, XTime local_time, XUartPs Uart_PS, int packet_type)
 		PutCCSDSHeader(report_buff, APID_SOH, GF_UNSEG_PACKET, 0, SOH_PACKET_LENGTH);
 		CalculateChecksums(report_buff);
 
-		bytes_sent = XUartPs_Send(&Uart_PS, (u8 *)report_buff, (SOH_PACKET_LENGTH + CCSDS_HEADER_FULL));
+		bytes_sent = SendPacket(Uart_PS, report_buff, SOH_PACKET_LENGTH + CCSDS_HEADER_FULL);
 		if(bytes_sent == (SOH_PACKET_LENGTH + CCSDS_HEADER_FULL))
 			status = CMD_SUCCESS;
 		else
@@ -528,7 +528,7 @@ int reportSuccess(XUartPs Uart_PS, int report_filename)
 	int bytes_sent = 0;
 	int packet_size = 0;	//Don't record the size of the CCSDS header with this variable
 	int i_sprintf_ret = 0;
-	unsigned char cmdSuccess[100] = "";
+	unsigned char cmdSuccess[CMD_BUFFER_SIZE] = "";
 
 	//fill the data bytes
 	switch(report_filename)
@@ -572,7 +572,7 @@ int reportSuccess(XUartPs Uart_PS, int report_filename)
 	//I should look at using a regular char buffer rather than using calloc() and free() //changed 3/14/19
 	//get last command gets the size of the string minus the newline
 	//we want to add 1 (secondary header) and add 4 (checksums) minus 1
-	PutCCSDSHeader(cmdSuccess, APID_CMD_SUCC, GF_UNSEG_PACKET, 1, packet_size + CHECKSUM_SIZE);
+	PutCCSDSHeader(cmdSuccess, APID_CMD_SUCC, GF_UNSEG_PACKET, 0, packet_size + CHECKSUM_SIZE);
 	CalculateChecksums(cmdSuccess);
 
 	bytes_sent = XUartPs_Send(&Uart_PS, (u8 *)cmdSuccess, (CCSDS_HEADER_FULL + packet_size + CHECKSUM_SIZE));
@@ -609,7 +609,7 @@ int reportFailure(XUartPs Uart_PS)
 	int status = 0;
 	int bytes_sent = 0;
 	int i_sprintf_ret = 0;
-	unsigned char cmdFailure[100] = "";
+	unsigned char cmdFailure[CMD_BUFFER_SIZE] = "";
 
 	i_sprintf_ret = snprintf((char *)(&cmdFailure[11]), 100, "%s\n", GetLastCommand());
 	if(i_sprintf_ret == GetLastCommandSize())
@@ -617,7 +617,7 @@ int reportFailure(XUartPs Uart_PS)
 	else
 		status = CMD_FAILURE;
 
-	PutCCSDSHeader(cmdFailure, APID_CMD_FAIL, GF_UNSEG_PACKET, 1, GetLastCommandSize() + CHECKSUM_SIZE);
+	PutCCSDSHeader(cmdFailure, APID_CMD_FAIL, GF_UNSEG_PACKET, 0, GetLastCommandSize() + CHECKSUM_SIZE);
 	CalculateChecksums(cmdFailure);
 
 	bytes_sent = XUartPs_Send(&Uart_PS, (u8 *)cmdFailure, (CCSDS_HEADER_FULL + i_sprintf_ret + CHECKSUM_SIZE));
@@ -729,9 +729,9 @@ int DeleteFile( XUartPs Uart_PS, char * RecvBuffer, int sd_card_number, int file
 	int status = 0;
 	unsigned int bytes_written = 0;
 	char *ptr_file_TX_filename = NULL;
-	char file_TX_folder[100] = "";
-	char file_TX_filename[100] = "";
-	char file_TX_path[100] = "";
+	char file_TX_folder[TX_FILE_STRING_BUFF_SIZE] = "";
+	char file_TX_filename[TX_FILE_STRING_BUFF_SIZE] = "";
+	char file_TX_path[TX_FILE_STRING_BUFF_SIZE] = "";
 	char WF_FILENAME[] = "wf01.bin";
 	char log_file[] = "MNSCMDLOG.txt";
 	char config_file[] = "MNSCONF.bin";
@@ -914,9 +914,9 @@ int TransferSDFile( XUartPs Uart_PS, char * RecvBuffer, int file_type, int id_nu
 	char WF_FILENAME[] = "wf01.bin";
 	char log_file[] = "MNSCMDLOG.txt";
 	char config_file[] = "MNSCONF.bin";
-	char file_TX_folder[100] = "";
-	char file_TX_filename[100] = "";
-	char file_TX_path[100] = "";
+	char file_TX_folder[TX_FILE_STRING_BUFF_SIZE] = "";
+	char file_TX_filename[TX_FILE_STRING_BUFF_SIZE] = "";
+	char file_TX_path[TX_FILE_STRING_BUFF_SIZE] = "";
 	unsigned char packet_array[2040] = "";	//TODO: check if I can drop the 2040 -> TELEMETRY_MAX_SIZE (2038)
 	DATA_FILE_HEADER_TYPE data_file_header = {};
 	DATA_FILE_SECONDARY_HEADER_TYPE data_file_2ndy_header = {};
@@ -1364,11 +1364,10 @@ int TransferSDFile( XUartPs Uart_PS, char * RecvBuffer, int file_type, int id_nu
  * @param	(unsigned char *)	pointer to the packet buffer
  * @param	(int)		total bytes in the packet (should be the same for packets of the same type)
  *
- * @return	(int)
+ * @return	(int)		the number of bytes sent by the UART
  */
 int SendPacket( XUartPs Uart_PS, unsigned char *packet_buffer, int bytes_to_send )
 {
-	int status = 0;
 	int sent = 0;
 	int bytes_sent = 0;
 
@@ -1394,5 +1393,5 @@ int SendPacket( XUartPs Uart_PS, unsigned char *packet_buffer, int bytes_to_send
 			break;
 	}
 
-	return status;
+	return bytes_sent;
 }

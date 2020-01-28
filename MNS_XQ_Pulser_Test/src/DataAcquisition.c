@@ -203,23 +203,23 @@ int SetFileName( int ID_number, int run_number, int set_number )
 	bytes_written = snprintf(current_filename_EVT, 100, "evt_S%04d.bin", set_number);
 	if(bytes_written == 0)
 		status = CMD_FAILURE;
-//	bytes_written = snprintf(current_filename_CPS, 100, "cps_S%04d.bin", set_number);
+
 	bytes_written = snprintf(current_filename_CPS, 100, "cps.bin");
 	if(bytes_written == 0)
 		status = CMD_FAILURE;
-//	bytes_written = snprintf(current_filename_2DH_0, 100, "2d0_S%04d.bin", set_number);
+
 	bytes_written = snprintf(current_filename_2DH_0, 100, "2d0.bin");
 	if(bytes_written == 0)
 		status = CMD_FAILURE;
-//	bytes_written = snprintf(current_filename_2DH_1, 100, "2d1_S%04d.bin", set_number);
+
 	bytes_written = snprintf(current_filename_2DH_1, 100, "2d1.bin");
 	if(bytes_written == 0)
 		status = CMD_FAILURE;
-//	bytes_written = snprintf(current_filename_2DH_2, 100, "2d2_S%04d.bin", set_number);
+
 	bytes_written = snprintf(current_filename_2DH_2, 100, "2d2.bin");
 	if(bytes_written == 0)
 		status = CMD_FAILURE;
-//	bytes_written = snprintf(current_filename_2DH_3, 100, "2d3_S%04d.bin", set_number);
+
 	bytes_written = snprintf(current_filename_2DH_3, 100, "2d3.bin");
 	if(bytes_written == 0)
 		status = CMD_FAILURE;
@@ -650,7 +650,6 @@ int DataAcquisition( XIicPs * Iic, XUartPs Uart_PS, char * RecvBuffer, int time_
 					//TODO: error check
 					xil_printf("8 error syncing DAQ\n");
 				}
-//				sd_updateFileRecords("raw_data.bin", file_size(&m_raw_data_file));
 #endif
 
 				//check the file size and see if we need to change files
@@ -661,9 +660,7 @@ int DataAcquisition( XIicPs * Iic, XUartPs Uart_PS, char * RecvBuffer, int time_
 					f_res = f_write(&m_EVT_file, &file_footer_to_write, sizeof(file_footer_to_write), &bytes_written);
 					if(f_res != FR_OK || bytes_written != sizeof(file_footer_to_write))
 						status = CMD_FAILURE;
-					//just before we close the file, write the final record of it
-//					sd_updateFileRecords(current_filename_EVT, file_size(&m_EVT_file));
-					//then close the file, as we're done with it
+
 					f_close(&m_EVT_file);
 					//create the new file name (increment the set number)
 					daq_run_set_number++; file_header_to_write.SetNum = daq_run_set_number;
