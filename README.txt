@@ -9,3 +9,5 @@
  - Version 7.6.D - Loaded the XC boot files onto the XC board upstairs at ASU and got data back
  
  - Version 7.6 - Test version of the CPS update to the FSW; the streamlined DAQ is being tested on the XQ chip, it worked for CPS, SOH on the XC
+ 
+ - Version 7.7 - Created a version with has the streamline updates, added a fix for the 2DH files; rebuilt for d0, d1

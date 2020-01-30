@@ -1,0 +1,7 @@
+//arch = zynq; split = false; format = MCS
+the_ROM_image:
+{
+	[bootloader]C:\Users\gstoddard\Desktop\MNS_XQ_Pulser_Test\MNS_XQ_Pulser_Test_FSBL\Release\MNS_XQ_Pulser_Test_FSBL.elf
+	C:\Users\gstoddard\Desktop\MNS_XQ_Pulser_Test\design_1_wrapper_hw_platform_0\design_1_wrapper.bit
+	C:\Users\gstoddard\Desktop\MNS_XQ_Pulser_Test\MNS_XQ_Pulser_Test\Release\MNS_XQ_Pulser_Test.elf
+}

@@ -10,7 +10,7 @@
 
 #include "xparameters.h"
 
-#define MNS_DETECTOR_NUM	0
+#define MNS_DETECTOR_NUM	1
 
 #define PRODUCE_RAW_DATA	0
 

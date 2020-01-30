@@ -7,13 +7,6 @@
 
 #include "TwoDHisto.h"
 
-static int m_x_bin_number;
-static int m_y_bin_number;
-static unsigned int m_oor_left;
-static unsigned int m_oor_right;
-static unsigned int m_oor_below;
-static unsigned int m_oor_above;
-static unsigned int m_valid_multi_hit_event;
 static unsigned short m_2DH_pmt0[TWODH_X_BINS][TWODH_Y_BINS];
 static unsigned short m_2DH_pmt1[TWODH_X_BINS][TWODH_Y_BINS];
 static unsigned short m_2DH_pmt2[TWODH_X_BINS][TWODH_Y_BINS];
@@ -35,7 +28,6 @@ int Save2DHToSD( int pmt_ID )
 {
 	int status = CMD_FAILURE;
 	unsigned int numBytesWritten = 0;
-	unsigned int m_oor_values[5] = {m_oor_left, m_oor_right, m_oor_below, m_oor_above, m_valid_multi_hit_event};
 	char *filename_pointer;
 	char filename_buff[100] = "";
 	FIL save2DH;
@@ -105,48 +97,21 @@ int Save2DHToSD( int pmt_ID )
 		else
 			status = CMD_SUCCESS;
 	}
-	//write the out of range values in
-	f_res = f_write(&save2DH, m_oor_values, sizeof(unsigned int) * 5, &numBytesWritten);
-	if(f_res != FR_OK || numBytesWritten != (sizeof(unsigned int) * 5))
-	{
-		//TODO: handle error checking the write
-		xil_printf("3 error writing 2dh\n");
-		status = CMD_FAILURE;
-	}
-	else
-		status = CMD_SUCCESS;
+//	//write the out of range values in
+//	f_res = f_write(&save2DH, m_oor_values, sizeof(unsigned int) * 5, &numBytesWritten);
+//	if(f_res != FR_OK || numBytesWritten != (sizeof(unsigned int) * 5))
+//	{
+//		//TODO: handle error checking the write
+//		xil_printf("3 error writing 2dh\n");
+//		status = CMD_FAILURE;
+//	}
+//	else
+//		status = CMD_SUCCESS;
 
 //	sd_updateFileRecords(filename_buff, file_size(&save2DH));
 	f_close(&save2DH);
 	return status;
 }
-
-/*
- * Retrieves and double checks the X array index for the current event being processed.
- * This value will get reported by the EVTs data product.
- *
- * @param	None
- *
- * @return	(int) bin number to be stored in an EVTs event
- */
-unsigned int Get_2DHXIndex( void )
-{
-	return m_x_bin_number;
-}
-
-/*
- * Retrieves and double checks the X array index for the current event being processed.
- * This value will get reported by the EVTs data product.
- *
- * @param	None
- *
- * @return	(int) bin number to be stored in an EVTs event
- */
-unsigned int Get_2DHYIndex( void )
-{
-		return m_y_bin_number;
-}
-
 
 /*
  * Takes energy and PSD values from an event and tallies them into 2-D Histograms.
@@ -171,25 +136,27 @@ unsigned int Get_2DHYIndex( void )
 int Tally2DH(int energy_bin, int psd_bin, int pmt_ID)
 {
 	int status = 0;
+	int m_valid_multi_hit_event = 0;
 
 	if(0 <= energy_bin && energy_bin < TWODH_X_BINS)
 	{
 		if(0 <= psd_bin && psd_bin < TWODH_Y_BINS)
 		{
 			//value is good
+			status = 1;
 			switch(pmt_ID)
 			{
 			case PMT_ID_0:
-				m_2DH_pmt0[m_x_bin_number][m_y_bin_number]++;
+				m_2DH_pmt0[energy_bin][psd_bin]++;
 				break;
 			case PMT_ID_1:
-				m_2DH_pmt1[m_x_bin_number][m_y_bin_number]++;
+				m_2DH_pmt1[energy_bin][psd_bin]++;
 				break;
 			case PMT_ID_2:
-				m_2DH_pmt2[m_x_bin_number][m_y_bin_number]++;
+				m_2DH_pmt2[energy_bin][psd_bin]++;
 				break;
 			case PMT_ID_3:
-				m_2DH_pmt3[m_x_bin_number][m_y_bin_number]++;
+				m_2DH_pmt3[energy_bin][psd_bin]++;
 				break;
 			default:
 				//don't record non-singleton hits in a 2DH

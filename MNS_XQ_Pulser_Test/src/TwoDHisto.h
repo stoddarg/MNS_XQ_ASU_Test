@@ -17,8 +17,6 @@
 
 //function prototypes
 int Save2DHToSD( int pmt_ID );
-unsigned int Get_2DHXIndex( void );
-unsigned int Get_2DHYIndex( void );
 int Tally2DH(int energy_bin, int psd_bin, int pmt_ID);
 
 #endif /* SRC_TWODHISTO_H_ */
